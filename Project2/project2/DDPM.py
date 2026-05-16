@@ -76,6 +76,10 @@ class ConditionalDDPM(nn.Module):
 
         c = F.one_hot(conditions.long(), num_classes=self.modelconfig.num_classes).float().to(device)
 
+        drop_mask = (torch.rand(B, 1, device=device) < self.modelconfig.mask_p)
+        c_null = torch.full_like(c, float(self.modelconfig.condition_mask_value))
+        c = torch.where(drop_mask, c_null, c)
+
         sched = self.scheduler(t_s)
         sqrt_alpha_bar       = sched['sqrt_alpha_bar'].view(B, 1, 1, 1)
         sqrt_oneminus_alpha_bar = sched['sqrt_oneminus_alpha_bar'].view(B, 1, 1, 1)
@@ -111,7 +115,7 @@ class ConditionalDDPM(nn.Module):
         B = conditions.shape[0]
 
         c = F.one_hot(conditions.long(), num_classes=self.modelconfig.num_classes).float().to(device)
-        c_null = torch.zeros_like(c).to(device)
+        c_null = torch.full_like(c, float(self.modelconfig.condition_mask_value))
         X_t = torch.randn(B, self.modelconfig.num_channels,
                         self.modelconfig.input_dim, self.modelconfig.input_dim, device=device)
 

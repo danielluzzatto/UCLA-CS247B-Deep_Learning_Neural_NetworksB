@@ -39,6 +39,10 @@ class ConditionalFM(nn.Module):
 
         c = F.one_hot(conditions.long(), num_classes=self.modelconfig.num_classes).float().to(device)
 
+        drop_mask = (torch.rand(B, 1, device=device) < self.modelconfig.mask_p)
+        c_null = torch.full_like(c, float(self.modelconfig.condition_mask_value))
+        c = torch.where(drop_mask, c_null, c)
+
         x0 = torch.randn_like(images, device=device)
         x1 = images
         xt = (1 - t) * x0 + t * x1
@@ -71,7 +75,7 @@ class ConditionalFM(nn.Module):
 
         B = conditions.shape[0]
         c = F.one_hot(conditions.long(), num_classes=self.modelconfig.num_classes).float().to(device)
-        c_null = torch.zeros_like(c).to(device)
+        c_null = torch.full_like(c, float(self.modelconfig.condition_mask_value))
 
         x = torch.randn(B, self.modelconfig.num_channels, self.modelconfig.input_dim, self.modelconfig.input_dim, device=device)
 
