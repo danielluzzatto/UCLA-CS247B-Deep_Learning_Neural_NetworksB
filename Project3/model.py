@@ -588,13 +588,7 @@ class MiniGPT(nn.Module):
 
 
 class TransformerEncoderLayer(nn.Module):
-    """
-    Pre-norm transformer encoder block.
-
-    Identical to ``TransformerLayer`` but uses non-causal (bidirectional)
-    multi-head self-attention so every token can attend to every other token
-    in the sequence.
-    """
+    """Same as TransformerLayer but with non-causal attention."""
 
     def __init__(self, input_dim, num_heads, feedforward_dim=None):
         super().__init__()
@@ -610,14 +604,7 @@ class TransformerEncoderLayer(nn.Module):
 
 
 class MiniEncoder(nn.Module):
-    """
-    Transformer encoder model.
-
-    Mirrors :class:`MiniGPT` but stacks :class:`TransformerEncoderLayer`
-    blocks (non-causal attention) and exposes contextualized token
-    representations. Useful as a building block for tasks like sequence
-    classification or as the encoder side of an encoder-decoder model.
-    """
+    """Encoder counterpart to MiniGPT. Returns contextualized token reps."""
 
     def __init__(self, config) -> None:
         super().__init__()
