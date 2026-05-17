@@ -5,4 +5,10 @@ mnist_data
 *.npz
 *.pth
 *.gz
-/*/*/data/MNIST/
+MNIST/
+
+Project3/models/**/*.pt
+!Project3/models/bigram/mini_model_checkpoint_500000.pt
+!Project3/models/minigpt/mini_model_checkpoint_180000.pt
+
+wandb/
