@@ -12,3 +12,6 @@ Project3/models/**/*.pt
 !Project3/models/minigpt/mini_model_checkpoint_180000.pt
 
 wandb/
+
+__MACOSX/
+.DS_Store
