@@ -165,15 +165,26 @@ class DQN:
             float: the loss, if we do not have enough samples, we return 0
         """
         # ========== YOUR CODE HERE ==========
-        # TODO: some hints to get you started:
-        # 1. check if the replay buffer has enough samples
-        # 2. sample a minibatch
-        # 4. compute current Q: q_values = ...
-        # 5. compute target Q
-        # 6. compute loss between current Q and target Q
-        # 7. backprop
-        # ====================================
-        raise NotImplementedError("optimize_model func in DQN class not implemented")
+        if len(self.replay_buffer) < 10 * self.batch_size:
+            return False, 0
+
+        states, actions, rewards, next_states, dones = self.replay_buffer.sample(self.batch_size, self.device)
+
+        # current Q: Q(s, a) for the actions actually taken
+        q_values = self.model(states).gather(1, actions.unsqueeze(1)).squeeze(1)
+
+        # target Q: r + gamma * max_a' Q(s', a'), bootstrapping with the same network
+        with torch.no_grad():
+            next_q_values = self.model(next_states).max(dim=1)[0]
+            target_q = rewards + self.gamma * next_q_values * (~dones)
+
+        loss = self.loss_fn(q_values, target_q)
+
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+
+        return True, loss.item()
 
         # ========== YOUR CODE ENDS ==========
 
@@ -189,12 +200,13 @@ class DQN:
             int: the index of the action to take
         """
         # ========== YOUR CODE HERE ==========
-        # TODO:
-        # Epsilon-greedy action selection:
-        #  - if probability epsilon: random action
-        #  - else: greedy action
-        # ====================================
-        raise NotImplementedError("sample_action func in DQN class not implemented")
+        if random.random() < epsilon:
+            index = self.env.action_space.sample()
+        else:
+            with torch.no_grad():
+                state_tensor = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
+                q_values = self.model(state_tensor)
+                index = int(q_values.argmax(dim=1).item())
 
         # ========== YOUR CODE ENDS ==========
         return index
@@ -281,10 +293,10 @@ class HardUpdateDQN(DQN):
     def __init__(self, env, model, model_kwargs: dict = {}, update_freq: int = 5, *args, **kwargs):
         super().__init__(env, model, model_kwargs, *args, **kwargs)
         # ========== YOUR CODE HERE ==========
-        # TODO:
-        # fill in the initialization and synchronization of the target model weights
-        # ====================================
-        raise NotImplementedError("HardUpdateDQN class not implemented")
+        self.update_freq = update_freq
+        self.target_model = model(self.observation_space, self.env.action_space.n, **model_kwargs).to(self.device)
+        self.target_model.load_state_dict(self.model.state_dict())
+        self.target_model.eval()
 
         # ========== YOUR CODE ENDS ==========
 
@@ -296,11 +308,28 @@ class HardUpdateDQN(DQN):
             float: the loss, if we do not have enough samples, we return 0
         """
         # ========== YOUR CODE HERE ==========
-        # TODO:
-        # hint: you can copy over most of the code from the parent class
-        # and only change two lines
-        # ====================================
-        raise NotImplementedError("optimize_model func in HardUpdateDQN class not implemented")
+        if len(self.replay_buffer) < 10 * self.batch_size:
+            return False, 0
+
+        states, actions, rewards, next_states, dones = self.replay_buffer.sample(self.batch_size, self.device)
+
+        # current Q: Q(s, a) for the actions actually taken
+        q_values = self.model(states).gather(1, actions.unsqueeze(1)).squeeze(1)
+
+        # target Q computed with the separate (periodically updated) target network
+        with torch.no_grad():
+            next_q_values = self.target_model(next_states).max(dim=1)[0]
+            target_q = rewards + self.gamma * next_q_values * (~dones)
+
+        loss = self.loss_fn(q_values, target_q)
+
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+
+        self._update_model()
+
+        return True, loss.item()
 
         # ========== YOUR CODE ENDS ==========
 
@@ -328,8 +357,7 @@ class SoftUpdateDQN(HardUpdateDQN):
         Soft updates the target model
         """
         # ========== YOUR CODE HERE ==========
-        # TODO
-        # ====================================
-        raise NotImplementedError("update_model func in SoftUpdateDQN class not implemented")
+        for target_param, param in zip(self.target_model.parameters(), self.model.parameters()):
+            target_param.data.copy_(self.tau * param.data + (1.0 - self.tau) * target_param.data)
 
         # ========== YOUR CODE ENDS ==========

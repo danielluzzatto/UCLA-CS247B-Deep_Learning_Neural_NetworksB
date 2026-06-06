@@ -57,7 +57,7 @@ class ReplayBufferDQN:
 
         states_list, actions_list, rewards_list, next_states_list, dones_list =  zip(*samples)
 
-        states = torch.stack([torch.tensor(s, dtype=torch.float32) for s in states_list])
+        states = torch.stack([torch.tensor(s, dtype=torch.float32) for s in states_list]).to(device)
         actions = torch.tensor(actions_list, dtype=torch.int64).long().to(device)
         rewards = torch.tensor(rewards_list, dtype=torch.float32).to(device)
         next_states = torch.stack([torch.tensor(ns, dtype=torch.float32) for ns in next_states_list]).to(device)
